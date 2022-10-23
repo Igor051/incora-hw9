@@ -18,12 +18,12 @@ export class RedisController {
   constructor(private readonly redisService: RedisService) {}
 
   @Delete(':key')
-  async deleteUser(@Param() { key }) {
+  async deleteUser(@Param() { key }: { key: string }) {
     return this.redisService.deleteUser(key);
   }
 
   @Get(':key')
-  async getUser(@Param() { key }) {
+  async getUser(@Param() { key }: { key: string }) {
     return this.redisService.getUser(key);
   }
 
@@ -33,9 +33,10 @@ export class RedisController {
   }
 
   @Put(':key')
-  async updateUser(@Body() user: UpdateUserDto, @Param() { key }) {
+  async updateUser(
+    @Body() user: UpdateUserDto,
+    @Param() { key }: { key: string },
+  ) {
     return this.redisService.updateUser(key, user);
   }
-
-
 }

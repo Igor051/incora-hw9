@@ -3,6 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { User } from '../entities/users.entity';
 import { Repository } from 'typeorm';
 import { RedisService } from '../redis/redis.service';
+import { Cron, CronExpression } from '@nestjs/schedule';
 
 @Injectable()
 export class DbService {
@@ -12,33 +13,27 @@ export class DbService {
     @Inject(RedisService) private readonly redisService: RedisService,
   ) {}
 
-  async saveToDb() {
-    let users = await this.redisService.getAllUsers();
-
-    const foundData = await this.usersRepository.find();
-    const foundKeys = foundData.map(({ key }) => key);
-    users = users.filter((user) => {
-      return !foundKeys.includes(user.key);
-    });
+  @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
+  async saveToDb(): Promise<{ id: number }[]> {
+    const users = await this.redisService.getAllUsers();
 
     const insertResult = await this.usersRepository
       .createQueryBuilder()
       .insert()
       .into(User)
       .values(users)
+      .orIgnore()
       .execute();
 
     return insertResult.raw;
   }
 
-  async getFromDb() {
-    const users = await this.usersRepository.find();
+  async getFromDb(): Promise<User[]> {
+    const users = await this.usersRepository.find({
+      select: { key: true, firstName: true, lastName: true },
+    });
 
-    for (const user of users) {
-      const key = user.key;
-
-      await this.redisService.set(key, JSON.stringify(user));
-    }
+    await this.redisService.mSet(users);
 
     return users;
   }
