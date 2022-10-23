@@ -12,7 +12,7 @@ export class DbService {
     @Inject(RedisService) private readonly redisService: RedisService,
   ) {}
 
-  async saveToDb() {
+  async saveToDb(): Promise<{ id: number }[]> {
     const users = await this.redisService.getAllUsers();
 
     const insertResult = await this.usersRepository
@@ -26,7 +26,7 @@ export class DbService {
     return insertResult.raw;
   }
 
-  async getFromDb() {
+  async getFromDb(): Promise<User[]> {
     const users = await this.usersRepository.find({
       select: { key: true, firstName: true, lastName: true },
     });

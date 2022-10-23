@@ -9,6 +9,7 @@ import { Cache } from 'cache-manager';
 import { InjectRepository } from '@nestjs/typeorm';
 import { User } from '../entities/users.entity';
 import { Repository } from 'typeorm';
+import { CreateUserDto } from '../dto/user.dto';
 
 @Injectable()
 export class RedisService {
@@ -18,17 +19,17 @@ export class RedisService {
     @Inject(CACHE_MANAGER) private readonly cacheManager: Cache,
   ) {}
 
-  async saveUser(user) {
+  async saveUser(user): Promise<string> {
     const key = `${(Math.random() + 1).toString(36).substring(7)}`;
     await this.cacheManager.set(key, JSON.stringify(user));
     return key;
   }
 
-  async getUser(key: string) {
+  async getUser(key: string): Promise<string | null> {
     return await this.cacheManager.get(key);
   }
 
-  async updateUser(key, user) {
+  async updateUser(key, user): Promise<string> {
     if (!(await this.cacheManager.get(key))) {
       throw new BadRequestException();
     }
@@ -37,30 +38,32 @@ export class RedisService {
     return await this.cacheManager.set(key, JSON.stringify(user));
   }
 
-  async deleteUser(key) {
+  async deleteUser(key): Promise<number> {
     return await this.cacheManager.del(key);
   }
 
-  async getAllUsers() {
+  async getAllUsers(): Promise<(CreateUserDto & { key: string })[]> {
     const keys: string[] = await this.cacheManager.store.keys();
     if (!keys.length) {
       throw new HttpException('', 204);
     }
 
-    const values = await this.cacheManager.store.mget(...keys);
-    values.filter((value) => value);
+    let values: string[] = await this.cacheManager.store.mget(...keys);
+    values = values.filter((value) => value);
+
     return values.map((value, i) => {
-      return { key: keys[i], ...JSON.parse(value) };
+      return { key: keys[i], ...(JSON.parse(value) as CreateUserDto) };
     });
   }
 
-  async mSet(users) {
+  async mSet(users): Promise<void> {
     const keysValues = [];
     for (let i = 0; i < users.length; i++) {
       keysValues.push(users[i].key);
       const { key, ...value } = users[i];
       keysValues.push(JSON.stringify(value));
     }
+
     await this.cacheManager.store.mset(...keysValues);
   }
 }
