@@ -18,6 +18,7 @@ import { DbModule } from './db/db.module';
       database: 'hw9',
       entities: [User],
       synchronize: true,
+      logging: true,
     }),
     TypeOrmModule.forFeature([User]),
     RedisModule,

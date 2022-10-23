@@ -1,6 +1,7 @@
 import {
   BadRequestException,
   CACHE_MANAGER,
+  HttpException,
   Inject,
   Injectable,
 } from '@nestjs/common';
@@ -41,17 +42,25 @@ export class RedisService {
   }
 
   async getAllUsers() {
-    const keys = await this.cacheManager.store.keys();
-    const users = [];
-    for (const key of keys) {
-      const user = JSON.parse(await this.cacheManager.get(key));
-      users.push({ key, ...user });
+    const keys: string[] = await this.cacheManager.store.keys();
+    if (!keys.length) {
+      throw new HttpException('', 204);
     }
 
-    return users;
+    const values = await this.cacheManager.store.mget(...keys);
+    values.filter((value) => value);
+    return values.map((value, i) => {
+      return { key: keys[i], ...JSON.parse(value) };
+    });
   }
 
-  async set(key, user) {
-    await this.cacheManager.set(key, user);
+  async mSet(users) {
+    const keysValues = [];
+    for (let i = 0; i < users.length; i++) {
+      keysValues.push(users[i].key);
+      const { key, ...value } = users[i];
+      keysValues.push(JSON.stringify(value));
+    }
+    await this.cacheManager.store.mset(...keysValues);
   }
 }
