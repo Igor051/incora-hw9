@@ -7,9 +7,25 @@ import { User } from './entities/users.entity';
 import { RedisModule } from './redis/redis.module';
 import { DbModule } from './db/db.module';
 import { ScheduleModule } from '@nestjs/schedule';
+import { ImageModule } from './image/image.module';
+import { MulterModule } from '@nestjs/platform-express';
+import { MailerModule } from '@nestjs-modules/mailer';
 
 @Module({
   imports: [
+    MailerModule.forRoot({
+      transport: {
+        host: process.env.MAILER_HOST,
+        auth: {
+          user: 'apikey',
+          pass: process.env.MAILER_SECRET,
+        },
+      },
+      defaults: {
+        from: '"hw11" <incoramailer01@gmail.com>',
+      },
+    }),
+    MulterModule.register(),
     TypeOrmModule.forRoot({
       type: 'postgres',
       host: 'localhost',
@@ -25,6 +41,7 @@ import { ScheduleModule } from '@nestjs/schedule';
     TypeOrmModule.forFeature([User]),
     RedisModule,
     DbModule,
+    ImageModule,
   ],
   controllers: [AppController],
   providers: [
